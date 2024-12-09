@@ -50,6 +50,23 @@ export class RestAPIStack extends cdk.Stack {
     });
 
     // Functions
+
+    const getAwardsByMovieFn = new lambdanode.NodejsFunction(
+      this,
+      "getAwardsByMovieFn",
+      {
+        architecture: lambda.Architecture.ARM_64,
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: `${__dirname}/../lambdas/getAwardsByMovie.ts`,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        environment: {
+          TABLE_NAME: movieAwardsTable.tableName,
+          REGION: "eu-west-1",
+        },
+      }
+    );
+
     const getMovieByIdFn = new lambdanode.NodejsFunction(
       this,
       "GetMovieByIdFn",
@@ -82,6 +99,8 @@ export class RestAPIStack extends cdk.Stack {
         },
       }
     );
+
+    
 
     const deleteMovieByIdFn = new lambdanode.NodejsFunction(
       this,
@@ -138,6 +157,14 @@ export class RestAPIStack extends cdk.Stack {
       },
     });
 
+    const awardsEndpoint = api.root.addResource("awards");
+
+    const awardEndpoint = awardsEndpoint.addResource("{awardBody}");
+
+    const moviesAwardEndpoint = awardEndpoint.addResource("movies");
+
+    const movieAwardEndpoint = moviesAwardEndpoint.addResource("{movieId}");
+    
     const moviesEndpoint = api.root.addResource("movies");
 
     const movieEndpoint = moviesEndpoint.addResource("{movieId}");
@@ -145,6 +172,11 @@ export class RestAPIStack extends cdk.Stack {
     movieEndpoint.addMethod(
       "GET",
       new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
+    );
+
+    movieAwardEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getAwardsByMovieFn, { proxy: true })
     );
 
     const movieCastEndpoint = movieEndpoint.addResource("cast");
@@ -160,8 +192,10 @@ export class RestAPIStack extends cdk.Stack {
 
     // Permissions;
     moviesTable.grantReadData(getMovieByIdFn);
+    moviesTable.grantReadData(getAwardsByMovieFn);
     moviesTable.grantReadWriteData(deleteMovieByIdFn);
     movieCastsTable.grantReadData(getMovieCastMembersFn);
     movieCastsTable.grantReadData(getMovieByIdFn);
+    movieAwardsTable.grantReadData(getAwardsByMovieFn);
   }
 }
