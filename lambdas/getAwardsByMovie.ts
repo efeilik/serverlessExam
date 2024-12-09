@@ -20,6 +20,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         const movieId = parameters?.movieId
             ? parseInt(parameters.movieId)
             : undefined;
+        const  numAwards  = event.queryStringParameters || 0 
+
         if (!movieId) {
             return {
                 statusCode: 404,
@@ -70,13 +72,26 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
             };
         }
 
-        return {
-            statusCode: 200,
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ data: commandOutput.Items }),
-        };
+        const items = commandOutput.Items[0];
+        if(items.numAwards > numAwards) {
+            return {
+                statusCode: 200,
+                headers: {
+                    "content-type": "application/json",
+                },
+                body: JSON.stringify({ data: commandOutput.Items, }),
+            };
+        }else{
+            return {
+                statusCode: 404,
+                headers: {
+                    "content-type": "application/json",
+                },
+                body: JSON.stringify({ Message: "Request Failed" }),
+            };
+        }
+        
+        
 
     } catch (error: any) {
         console.log(JSON.stringify(error));
